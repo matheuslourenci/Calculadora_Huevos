@@ -3,13 +3,12 @@ import streamlit as st
 # Configuración de la página
 st.set_page_config(page_title="Calculadora de Repostería", page_icon="🎂", layout="centered")
 
-# 1. Tabla de equivalencias de moldes y cantidad de huevos por unidad
+# 1. Tabla de equivalencias de moldes y cantidad de huevos por unidad (ACTUALIZADA)
 MOLDES_HUEVOS = {
-    "mini": 0.5,
-    "gris": 1.0,
-    "15cm": 1.5,
-    "corazon": 1.5,
-    "20cm": 2.5,
+    "Mini": 0.5,
+    "Gris": 1.0,
+    "15cm / ♡ P": 1.5,
+    "20cm / ♡ L": 2.5,
     "25cm": 5.0
 }
 
@@ -39,7 +38,7 @@ receta_seleccionada = st.selectbox("Receta:", RECETAS)
 st.subheader("2. Moldes a producir")
 cantidades = {}
 
-# Mostramos los moldes en 2 columnas para que en el móvil se vea bien organizado
+# Mostramos los moldes en 2 columnas
 cols = st.columns(2)
 for i, (molde, valor_h) in enumerate(MOLDES_HUEVOS.items()):
     col = cols[i % 2]
