@@ -25,17 +25,9 @@ RECETAS = [
     "Limón"
 ]
 
-# Inicializar estados en la sesión
+# Inicializar historial en la sesión
 if "resumen_sesion" not in st.session_state:
     st.session_state.resumen_sesion = []
-
-if "ultimo_calculo" not in st.session_state:
-    st.session_state.ultimo_calculo = None
-
-def limpiar_cantidades():
-    """Función para poner a 0 todas las casillas de moldes."""
-    for molde in MOLDES_HUEVOS.keys():
-        st.session_state[f"input_{molde}"] = 0.0
 
 st.title("🎂 Calculadora de Repostería")
 
@@ -43,60 +35,55 @@ st.title("🎂 Calculadora de Repostería")
 st.subheader("1. Selecciona la receta")
 receta_seleccionada = st.selectbox("Receta:", RECETAS)
 
-# --- PASO 2: CANTIDAD DE MOLDES ---
-col_head1, col_head2 = st.columns([2, 1])
-with col_head1:
-    st.subheader("2. Moldes a producir")
-with col_head2:
-    st.button("🔄 Limpiar moldes", on_click=limpiar_cantidades, use_container_width=True)
+# --- PASO 2 Y 3: FORMULARIO DE MOLDES Y CÁLCULO ---
+st.subheader("2. Moldes a producir")
 
-cantidades = {}
+# Usamos un formulario con clear_on_submit=True para que se limpien las casillas al enviar
+with st.form(key="formulario_reposteria", clear_on_submit=True):
+    cantidades = {}
+    cols = st.columns(2)
+    
+    for i, (molde, valor_h) in enumerate(MOLDES_HUEVOS.items()):
+        col = cols[i % 2]
+        cantidades[molde] = col.number_input(
+            label=f"'{molde}' ({valor_h} h/u):",
+            min_value=0.0,
+            value=0.0,
+            step=0.5,
+            format="%.1f",
+            key=f"input_{molde}"
+        )
+    
+    # Botón de envío del formulario
+    boton_calcular = st.form_submit_button("🧮 Calcular y guardar para esta receta", type="primary", use_container_width=True)
 
-# Mostramos los moldes en 2 columnas
-cols = st.columns(2)
-for i, (molde, valor_h) in enumerate(MOLDES_HUEVOS.items()):
-    col = cols[i % 2]
-    cantidades[molde] = col.number_input(
-        label=f"'{molde}' ({valor_h} h/u):",
-        min_value=0.0,
-        value=0.0,
-        step=0.5,
-        format="%.1f",
-        key=f"input_{molde}"
-    )
-
-# --- PASO 3: CÁLCULO ---
-st.markdown("---")
-if st.button("🧮 Calcular y guardar para esta receta", type="primary", use_container_width=True):
+# Lógica del cálculo tras pulsar el botón
+if boton_calcular:
     total_huevos = sum(cantidades[m] * MOLDES_HUEVOS[m] for m in cantidades)
     
     if total_huevos > 0:
         desglose_moldes = {m: cant for m, cant in cantidades.items() if cant > 0}
         
-        # Guardar registro en la sesión
+        # Guardar registro en el historial de la sesión
         registro = {
             "receta": receta_seleccionada,
             "total_huevos": total_huevos,
             "desglose": desglose_moldes
         }
         st.session_state.resumen_sesion.append(registro)
-        st.session_state.ultimo_calculo = registro
-        
-        # Limpiar casillas para el siguiente cálculo
-        limpiar_cantidades()
         st.rerun()
     else:
         st.warning("Indica al menos 1 molde para realizar el cálculo.")
 
 # --- RESULTADO DEL ÚLTIMO CÁLCULO ---
-if st.session_state.ultimo_calculo:
-    calc = st.session_state.ultimo_calculo
-    st.success(f"✅ ¡Añadido! **{calc['receta'].upper()}**: **{calc['total_huevos']:.1f} huevos**.")
+if st.session_state.resumen_sesion:
+    ultimo = st.session_state.resumen_sesion[-1]
+    st.success(f"✅ Añadido: **{ultimo['receta'].upper()}** ➔ **{ultimo['total_huevos']:.1f} huevos**.")
     with st.expander("Ver desglose del último cálculo"):
-        for m, cant in calc["desglose"].items():
+        for m, cant in ultimo["desglose"].items():
             st.write(f"• **{cant}** molde(s) '{m}' × {MOLDES_HUEVOS[m]} = **{cant * MOLDES_HUEVOS[m]:.1f} huevos**")
 
-# --- PASO 4: RESUMEN GENERAL ACUMULADO ---
+# --- PASO 4: RESUMEN GENERAL ACUMULADO DE LA JORNADA ---
 if st.session_state.resumen_sesion:
     st.markdown("---")
     st.subheader("📊 Resumen Acumulado de la Jornada")
@@ -118,6 +105,4 @@ if st.session_state.resumen_sesion:
     
     if st.button("🗑️ Reiniciar jornada / Borrar acumulado", use_container_width=True):
         st.session_state.resumen_sesion = []
-        st.session_state.ultimo_calculo = None
-        limpiar_cantidades()
         st.rerun()
